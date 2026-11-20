@@ -196,3 +196,126 @@ else:
     st.caption('추천은 선택 기간의 평균 최소값입니다. 관측일수가 적은 조합의 결과는 표본에 민감합니다.')
     visible['시간대'] = visible['분'].map(clock)
     download(visible,'line4_selection.csv')
+
+
+
+import streamlit as st
+import pandas as pd
+import re
+
+CSV_FILE = "subway_ridership.csv"
+
+@st.cache_data
+def load_ridership():
+    df = pd.read_csv(CSV_FILE, encoding="cp949")
+    df = df.drop_duplicates()
+
+    # 승하차 인원 컬럼
+    count_cols = [
+        c for c in df.columns
+        if "승차인원" in c or "하차인원" in c
+    ]
+
+    for col in count_cols:
+        df[col] = pd.to_numeric(
+            df[col], errors="coerce"
+        ).fillna(0)
+
+    df["총승차"] = df[
+        [c for c in count_cols if "승차인원" in c]
+    ].sum(axis=1)
+
+    df["총하차"] = df[
+        [c for c in count_cols if "하차인원" in c]
+    ].sum(axis=1)
+
+    df["총이용"] = df["총승차"] + df["총하차"]
+
+    return df
+
+
+def show_ridership():
+    st.header("🚇 수도권 지하철 이용량 분석")
+
+    df = load_ridership()
+
+    # 1. 조회 월 선택
+    months = sorted(df["사용월"].unique(), reverse=True)
+    month = st.selectbox("조회 월", months)
+
+    current = df[df["사용월"] == month]
+
+    # 2. 역 선택
+    stations = sorted(current["지하철역"].unique())
+    station = st.selectbox("지하철역 선택", stations)
+
+    station_df = current[
+        current["지하철역"] == station
+    ]
+
+    # 동일 역명의 여러 노선을 합산
+    board_cols = [
+        c for c in df.columns if "승차인원" in c
+    ]
+    exit_cols = [
+        c for c in df.columns if "하차인원" in c
+    ]
+
+    board = station_df[board_cols].sum()
+    exits = station_df[exit_cols].sum()
+
+    total_board = int(board.sum())
+    total_exit = int(exits.sum())
+
+    # 3. 핵심 지표
+    c1, c2, c3 = st.columns(3)
+    c1.metric("월 승차 인원", f"{total_board:,}명")
+    c2.metric("월 하차 인원", f"{total_exit:,}명")
+    c3.metric(
+        "월 총 이용량",
+        f"{total_board + total_exit:,}명"
+    )
+
+    # 4. 시간대별 승하차 그래프
+    times = [re.match(r"(.+?) 승차인원", c).group(1)
+             for c in board_cols]
+
+    chart = pd.DataFrame({
+        "시간대": times,
+        "승차": board.values,
+        "하차": exits.values
+    }).set_index("시간대")
+
+    st.subheader("시간대별 승하차 인원")
+    st.line_chart(chart)
+
+    # 5. 가장 이용량이 많은 시간대
+    chart["합계"] = chart["승차"] + chart["하차"]
+    peak_time = chart["합계"].idxmax()
+
+    st.info(f"이용량이 가장 많은 시간대: {peak_time}")
+
+    # 6. 이용량 상위 10개 역
+    st.subheader("이용량 TOP 10 역")
+
+    ranking = (
+        current.groupby("지하철역")["총이용"]
+        .sum()
+        .sort_values(ascending=False)
+        .head(10)
+    )
+
+    st.bar_chart(ranking)
+
+    # 7. 선택한 역의 월별 추이
+    st.subheader(f"{station} 월별 이용량 추이")
+
+    history = (
+        df[df["지하철역"] == station]
+        .groupby("사용월")["총이용"]
+        .sum()
+        .sort_index()
+    )
+
+    st.line_chart(history)
+
