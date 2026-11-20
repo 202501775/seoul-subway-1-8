@@ -1,0 +1,26 @@
+{
+  "raw_rows": 2658277,
+  "exact_duplicates_removed": 0,
+  "invalid_rows_removed": 0,
+  "aggregate_rows": 1106101,
+  "date_start": "2026-06-01",
+  "date_end": "2026-07-31",
+  "stations": 29,
+  "day_types": [
+    "평일",
+    "휴일"
+  ],
+  "network_rows": 1671,
+  "network_lines": [
+    "1호선",
+    "2호선",
+    "3호선",
+    "4호선",
+    "5호선",
+    "6호선",
+    "7호선",
+    "8호선"
+  ],
+  "source_network": "서울교통공사_지하철혼잡도정보_20260930.csv",
+  "source_cars": "서울교통공사_4호선 열차 칸별 혼잡도 정보_20260731.zip"
+}
