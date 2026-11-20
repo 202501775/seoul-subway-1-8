@@ -17,9 +17,13 @@ def clock(value):
 
 @st.cache_data
 def load_data():
-    return (pd.read_csv(ROOT/'data/network.csv.gz'),
-            pd.read_parquet(ROOT/'data/cars_daily.parquet'),
-            json.loads((ROOT/'data/metadata.json').read_text(encoding='utf-8')))
+    return (
+        pd.read_csv(ROOT / 'network.csv.gz'),
+        pd.read_parquet(ROOT / 'cars_daily.parquet'),
+        json.loads(
+            (ROOT / 'metadata.json').read_text(encoding='utf-8')
+        ),
+    )
 
 
 def chart(fig, key):
